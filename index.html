@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>项目成果展示</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+
+        * {
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+
+        #particles-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .project-card {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .project-card:hover {
+            transform: translateY(-8px);
+        }
+
+        .image-item {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .image-item:hover {
+            transform: scale(1.05);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .lightbox {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .lightbox-image {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+            animation: zoomIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes zoomIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-gradient {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+        }
+
+        .color-0 { --project-color: #667eea; }
+        .color-1 { --project-color: #f093fb; }
+        .color-2 { --project-color: #4facfe; }
+        .color-3 { --project-color: #43e97b; }
+        .color-4 { --project-color: #fa709a; }
+        .color-5 { --project-color: #fee140; }
+
+        /* 侧边导航样式 */
+        .side-nav {
+            position: fixed;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .nav-item {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            font-size: 20px;
+            position: relative;
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+
+        .nav-item.active {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.3);
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
+        }
+
+        /* 导航项提示 */
+        .nav-item::after {
+            content: attr(data-name);
+            position: absolute;
+            right: 60px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .nav-item:hover::after {
+            opacity: 1;
+        }
+
+        /* Lightbox 左右箭头 */
+        .nav-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .nav-arrow:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        .nav-arrow:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .nav-arrow:disabled:hover {
+            transform: translateY(-50%) scale(1);
+        }
+
+        .nav-arrow-prev {
+            left: 40px;
+        }
+
+        .nav-arrow-next {
+            right: 40px;
+        }
+
+        /* 图片计数器 */
+        .image-counter {
+            position: absolute;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.6);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .side-nav {
+                right: 10px;
+            }
+
+            .nav-item {
+                width: 40px;
+                height: 40px;
+                font-size: 16px;
+            }
+
+            .nav-item::after {
+                display: none;
+            }
+
+            .nav-arrow {
+                width: 50px;
+                height: 50px;
+                font-size: 24px;
+            }
+
+            .nav-arrow-prev {
+                left: 10px;
+            }
+
+            .nav-arrow-next {
+                right: 10px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <canvas id="particles-canvas"></canvas>
+
+    <div id="app" class="relative z-10">
+        <!-- Hero Section -->
+        <header class="hero-gradient py-20 px-4 text-center">
+            <div class="max-w-4xl mx-auto">
+                <h1 class="text-5xl md:text-6xl font-bold mb-6 animate-title">
+                    🎯 项目成果展示
+                </h1>
+                <p class="text-xl md:text-2xl text-white/90 mb-8 animate-subtitle">
+                    精选项目作品集 · 技术创新与实践
+                </p>
+                <div class="flex justify-center gap-8 text-white/80">
+                    <div class="text-center">
+                        <div class="text-3xl font-bold">{{ totalProjects }}</div>
+                        <div class="text-sm">项目数量</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-3xl font-bold">{{ totalImages }}</div>
+                        <div class="text-sm">图片总数</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Projects Grid -->
+        <main id="projects-container" class="max-w-7xl mx-auto px-4 py-16">
+            <div class="grid gap-12">
+                <div
+                    v-for="(project, index) in projects"
+                    :key="project.name"
+                    :id="'project-' + index"
+                    class="project-card bg-gray-800/50 backdrop-blur-sm rounded-2xl overflow-hidden shadow-2xl"
+                    :class="'color-' + (index % 6)"
+                >
+                    <!-- Project Header -->
+                    <div class="p-6 md:p-8" :style="{ background: 'linear-gradient(135deg, var(--project-color), #1a1a2e)' }">
+                        <div class="flex items-center gap-4 mb-4">
+                            <span class="text-4xl">{{ project.icon }}</span>
+                            <h2 class="text-2xl md:text-3xl font-bold">{{ project.name }}</h2>
+                        </div>
+                        <p class="text-white/80 text-sm">
+                            {{ project.images.length }} 张图片
+                        </p>
+                    </div>
+
+                    <!-- Images Grid -->
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div
+                                v-for="(image, imgIndex) in project.images"
+                                :key="imgIndex"
+                                class="image-item rounded-xl overflow-hidden bg-gray-700"
+                                @click="openLightbox(image, index, imgIndex)"
+                            >
+                                <img
+                                    :src="image.path"
+                                    :alt="image.caption"
+                                    class="w-full h-48 object-cover"
+                                >
+                                <div class="p-3">
+                                    <p class="text-sm text-gray-300">{{ image.caption }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="text-center py-8 text-gray-500">
+            <p>© 2024 项目成果展示 | Generated with AI</p>
+        </footer>
+
+        <!-- 侧边导航 -->
+        <nav class="side-nav">
+            <div
+                v-for="(project, index) in projects"
+                :key="index"
+                class="nav-item"
+                :class="{ active: activeProjectIndex === index }"
+                :data-name="project.name"
+                @click="scrollToProject(index)"
+            >
+                {{ project.icon }}
+            </div>
+        </nav>
+
+        <!-- Lightbox -->
+        <div v-if="lightboxOpen" class="lightbox" @click="closeLightbox">
+            <button
+                class="absolute top-6 right-6 text-white text-4xl hover:text-gray-300 transition-colors"
+                @click="closeLightbox"
+            >
+                ×
+            </button>
+
+            <!-- 左箭头 -->
+            <button
+                class="nav-arrow nav-arrow-prev"
+                @click.stop="prevImage"
+                :disabled="currentImageIndex === 0 && currentProjectIndex === 0"
+            >
+                ‹
+            </button>
+
+            <!-- 右箭头 -->
+            <button
+                class="nav-arrow nav-arrow-next"
+                @click.stop="nextImage"
+                :disabled="isLastImage"
+            >
+                ›
+            </button>
+
+            <img :src="currentImage" class="lightbox-image" @click.stop>
+
+            <!-- 图片计数器 -->
+            <div class="image-counter text-white">
+                {{ currentImageIndex + 1 }} / {{ currentProjectImages.length }}
+            </div>
+
+            <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-white text-center">
+                <p class="text-lg">{{ currentCaption }}</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    projects: [
+                        {
+                            name: '车辆画像系统',
+                            icon: '🚗',
+                            images: [
+                                { path: '成果展示/车辆画像系统/车辆画像_1.png', caption: '车辆画像系统 - 界面展示 1' },
+                                { path: '成果展示/车辆画像系统/车辆画像_2.png', caption: '车辆画像系统 - 界面展示 2' },
+                                { path: '成果展示/车辆画像系统/车辆画像_3.png', caption: '车辆画像系统 - 界面展示 3' }
+                            ]
+                        },
+                        {
+                            name: '费损分析系统',
+                            icon: '📊',
+                            images: [
+                                { path: '成果展示/费损分析系统/费损分析_1.png', caption: '费损分析系统 - 界面展示 1' },
+                                { path: '成果展示/费损分析系统/费损分析_2.png', caption: '费损分析系统 - 界面展示 2' },
+                                { path: '成果展示/费损分析系统/费损分析_3.png', caption: '费损分析系统 - 界面展示 3' }
+                            ]
+                        },
+                        {
+                            name: '辅助决策系统',
+                            icon: '🎯',
+                            images: [
+                                { path: '成果展示/辅助决策系统/辅助决策系统_1.png', caption: '辅助决策系统 - 界面展示 1' },
+                                { path: '成果展示/辅助决策系统/辅助决策系统_2.png', caption: '辅助决策系统 - 界面展示 2' },
+                                { path: '成果展示/辅助决策系统/辅助决策系统_3.png', caption: '辅助决策系统 - 界面展示 3' },
+                                { path: '成果展示/辅助决策系统/辅助决策系统_4.png', caption: '辅助决策系统 - 界面展示 4' }
+                            ]
+                        },
+                        {
+                            name: '交通需求变化系统',
+                            icon: '🚦',
+                            images: [
+                                { path: '成果展示/交通需求变化系统/交通需求变化_1.png', caption: '交通需求变化系统 - 界面展示 1' },
+                                { path: '成果展示/交通需求变化系统/交通需求变化_2.png', caption: '交通需求变化系统 - 界面展示 2' }
+                            ]
+                        },
+                        {
+                            name: '新疆检测系统',
+                            icon: '🔍',
+                            images: [
+                                { path: '成果展示/新疆检测系统/新疆检测系统_1.png', caption: '新疆检测系统 - 界面展示 1' },
+                                { path: '成果展示/新疆检测系统/新疆检测系统_2.png', caption: '新疆检测系统 - 界面展示 2' }
+                            ]
+                        },
+                        {
+                            name: '运营价值分析系统',
+                            icon: '💰',
+                            images: [
+                                { path: '成果展示/运营价值分析系统/运营价值分析系统_1.png', caption: '运营价值分析系统 - 界面展示 1' },
+                                { path: '成果展示/运营价值分析系统/运营价值分析系统_2.png', caption: '运营价值分析系统 - 界面展示 2' },
+                                { path: '成果展示/运营价值分析系统/运营价值分析系统_3.png', caption: '运营价值分析系统 - 界面展示 3' }
+                            ]
+                        }
+                    ],
+                    lightboxOpen: false,
+                    currentImage: '',
+                    currentCaption: '',
+                    currentProjectIndex: 0,
+                    currentImageIndex: 0,
+                    activeProjectIndex: 0
+                };
+            },
+            computed: {
+                totalProjects() {
+                    return this.projects.length;
+                },
+                totalImages() {
+                    return this.projects.reduce((sum, project) => sum + project.images.length, 0);
+                },
+                currentProjectImages() {
+                    return this.projects[this.currentProjectIndex]?.images || [];
+                },
+                isLastImage() {
+                    return this.currentProjectIndex === this.projects.length - 1 &&
+                           this.currentImageIndex === this.currentProjectImages.length - 1;
+                }
+            },
+            methods: {
+                openLightbox(image, projectIndex, imageIndex) {
+                    this.currentProjectIndex = projectIndex;
+                    this.currentImageIndex = imageIndex;
+                    this.currentImage = image.path;
+                    this.currentCaption = image.caption;
+                    this.lightboxOpen = true;
+                    document.body.style.overflow = 'hidden';
+                },
+                closeLightbox() {
+                    this.lightboxOpen = false;
+                    document.body.style.overflow = 'auto';
+                },
+                prevImage() {
+                    if (this.currentImageIndex > 0) {
+                        this.currentImageIndex--;
+                    } else if (this.currentProjectIndex > 0) {
+                        this.currentProjectIndex--;
+                        this.currentImageIndex = this.currentProjectImages.length - 1;
+                    }
+                    this.updateCurrentImage();
+                },
+                nextImage() {
+                    if (this.currentImageIndex < this.currentProjectImages.length - 1) {
+                        this.currentImageIndex++;
+                    } else if (this.currentProjectIndex < this.projects.length - 1) {
+                        this.currentProjectIndex++;
+                        this.currentImageIndex = 0;
+                    }
+                    this.updateCurrentImage();
+                },
+                updateCurrentImage() {
+                    const image = this.currentProjectImages[this.currentImageIndex];
+                    this.currentImage = image.path;
+                    this.currentCaption = image.caption;
+                },
+                scrollToProject(index) {
+                    const element = document.getElementById(`project-${index}`);
+                    if (element) {
+                        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }
+            },
+            mounted() {
+                // GSAP animations
+                gsap.registerPlugin(ScrollTrigger);
+
+                gsap.from('.animate-title', {
+                    opacity: 0,
+                    y: -50,
+                    duration: 1,
+                    ease: 'power3.out'
+                });
+
+                gsap.from('.animate-subtitle', {
+                    opacity: 0,
+                    y: -30,
+                    duration: 1,
+                    delay: 0.3,
+                    ease: 'power3.out'
+                });
+
+                gsap.utils.toArray('.project-card').forEach((card, i) => {
+                    gsap.from(card, {
+                        scrollTrigger: {
+                            trigger: card,
+                            start: 'top 80%',
+                            toggleActions: 'play none none reverse'
+                        },
+                        opacity: 0,
+                        y: 100,
+                        duration: 0.8,
+                        delay: i * 0.1,
+                        ease: 'power3.out'
+                    });
+                });
+
+                // Particle background
+                const canvas = document.getElementById('particles-canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+
+                const particles = [];
+                const particleCount = 100;
+
+                class Particle {
+                    constructor() {
+                        this.reset();
+                    }
+
+                    reset() {
+                        this.x = Math.random() * canvas.width;
+                        this.y = Math.random() * canvas.height;
+                        this.vx = (Math.random() - 0.5) * 0.5;
+                        this.vy = (Math.random() - 0.5) * 0.5;
+                        this.radius = Math.random() * 2 + 1;
+                        this.opacity = Math.random() * 0.5 + 0.2;
+                    }
+
+                    update() {
+                        this.x += this.vx;
+                        this.y += this.vy;
+
+                        if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+                        if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+                    }
+
+                    draw() {
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                        ctx.fillStyle = `rgba(102, 126, 234, ${this.opacity})`;
+                        ctx.fill();
+                    }
+                }
+
+                for (let i = 0; i < particleCount; i++) {
+                    particles.push(new Particle());
+                }
+
+                function animate() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    particles.forEach(particle => {
+                        particle.update();
+                        particle.draw();
+                    });
+                    requestAnimationFrame(animate);
+                }
+
+                animate();
+
+                window.addEventListener('resize', () => {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                });
+
+                // Keyboard navigation for lightbox
+                document.addEventListener('keydown', (e) => {
+                    if (this.lightboxOpen) {
+                        if (e.key === 'Escape') {
+                            this.closeLightbox();
+                        } else if (e.key === 'ArrowLeft') {
+                            this.prevImage();
+                        } else if (e.key === 'ArrowRight') {
+                            this.nextImage();
+                        }
+                    }
+                });
+
+                // ScrollTrigger for side navigation
+                this.projects.forEach((project, index) => {
+                    ScrollTrigger.create({
+                        trigger: `#project-${index}`,
+                        start: 'top center',
+                        end: 'bottom center',
+                        onEnter: () => {
+                            this.activeProjectIndex = index;
+                        },
+                        onEnterBack: () => {
+                            this.activeProjectIndex = index;
+                        }
+                    });
+                });
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
